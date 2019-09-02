@@ -7,13 +7,16 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"outDir": "out",
-		"sourceMap": true
+		"sourceMap": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true
 	},
 	"include": [
 		"src"
 	],
 	"exclude": [
 		"node_modules",
-		".vscode-test"
+		".vscode-test",
+		"test-resources"
 	]
 }
