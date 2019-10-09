@@ -40,7 +40,7 @@ describe('Language Support for Apache Camel extension', function () {
 		it('Verify display name', async function () {
 			this.timeout(5000);
 			const title = item.getTitle();
-			assert.equal(title, `${pjson.displayName}`);
+			assert.equal('test', `${pjson.displayName}`);
 		});
 
 		it('Verify description', async function () {
