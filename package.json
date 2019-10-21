@@ -144,7 +144,7 @@
     "typescript": "^3.6.4",
     "vsce": "^1.67.1",
     "vscode": "^1.1.36",
-    "vscode-extension-tester": "^2.0.1",
+    "vscode-extension-tester": "^2.0.4",
     "vscode-test": "^1.2.0",
     "vscode-uitests-tooling": "^1.0.5"
   },
@@ -155,7 +155,7 @@
     "find-java-home": "^1.0.1",
     "glob": "^7.1.4",
     "http-proxy-agent": "^2.1.0",
-    "https-proxy-agent": "^2.2.2",
+    "https-proxy-agent": "^3.0.0",
     "path-exists": "^4.0.0",
     "progress-stream": "^2.0.0",
     "tmp": "^0.1.0",

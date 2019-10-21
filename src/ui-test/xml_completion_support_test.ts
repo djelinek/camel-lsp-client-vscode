@@ -1,4 +1,4 @@
-import { EditorView, TextEditor, ContentAssist, BottomBarPanel, MarkerType } from 'vscode-extension-tester';
+import { EditorView, TextEditor, ContentAssist, BottomBarPanel, MarkerType, TitleBar } from 'vscode-extension-tester';
 import { DefaultFileDialog, WaitUntil, DefaultWait } from 'vscode-uitests-tooling';
 import * as path from 'path';
 import { assert } from 'chai';
@@ -21,6 +21,7 @@ describe('XML DSL support', function () {
 	};
 
 	const _clean = async function () {
+		await new TitleBar().select('File', 'Revert File');
 		await new EditorView().closeAllEditors();
 	};
 
