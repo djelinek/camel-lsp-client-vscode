@@ -39,7 +39,7 @@ jobs:
     - name: ui-test
       env:
           CODE_VERSION: ${{ matrix.vscode-version }}
-      run: xvfb-run -a npm run ui-test
+      run: xvfb-run -a npm run ci-test
     - name: Store VS Code logs
       uses: actions/upload-artifact@v3
       if: always()
