@@ -29,9 +29,9 @@ describe('Create a Camel Route using command', function () {
     let content: ViewContent;
 
     before(async function () {
-        this.timeout(120000);
+        this.timeout(20000);
         VSBrowser.instance.waitForWorkbench();
-        await DefaultWait.sleep(60000);
+        
     });
 
     after(async function () {
@@ -41,10 +41,12 @@ describe('Create a Camel Route using command', function () {
 
     function _setup() {
         return async function () {
-            this.timeout(20000);
+            this.timeout(80000);
 
             await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
+
+            await DefaultWait.sleep(60000);
 
             await new Workbench().openCommandPrompt();
             input = await InputBox.create();
