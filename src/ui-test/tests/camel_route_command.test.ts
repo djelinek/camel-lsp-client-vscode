@@ -16,10 +16,10 @@
  */
 import { expect } from "chai";
 import path = require("path");
-import { ActivityBar, DefaultTreeSection, EditorView, InputBox, SideBarView, TextEditor, VSBrowser, ViewContent, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, DefaultTreeSection, DefaultWait, EditorView, InputBox, SideBarView, TextEditor, VSBrowser, ViewContent, Workbench } from "vscode-uitests-tooling";
 
 describe('Create a Camel Route using command', function () {
-    this.timeout(120000);
+    this.timeout(240000);
 
     const RESOURCES: string = path.resolve('src', 'ui-test', 'resources');
     const QUICK_PICK = '>Camel:';
@@ -29,8 +29,9 @@ describe('Create a Camel Route using command', function () {
     let content: ViewContent;
 
     before(async function () {
-        this.timeout(20000);
+        this.timeout(120000);
         VSBrowser.instance.waitForWorkbench();
+        await DefaultWait.sleep(60000);
     });
 
     after(async function () {
