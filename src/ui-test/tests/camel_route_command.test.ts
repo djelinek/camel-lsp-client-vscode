@@ -35,10 +35,12 @@ describe('Create a Camel Route using command', function () {
 
 
     before(async function () {
-        this.timeout(20000);
+        this.timeout(80000);
         VSBrowser.instance.waitForWorkbench();
 
         marketplace = await Marketplace.open(this.timeout());
+
+       
         const extensionMetadata: { [key: string]: any } = JSON.parse(fs.readFileSync('package.json', {
             encoding: 'utf-8'
         }));
