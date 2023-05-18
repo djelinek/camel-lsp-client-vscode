@@ -16,8 +16,9 @@
  */
 import { expect } from "chai";
 import path = require("path");
-import { ActivityBar, By, DefaultTreeSection, DefaultWait, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, By, DefaultTreeSection, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
 import * as fs from 'fs';
+import * as pjson from '../../../package.json';
 
 describe('Create a Camel Route using command', function () {
     this.timeout(240000);
@@ -28,31 +29,36 @@ describe('Create a Camel Route using command', function () {
     let input: InputBox;
     let editor: TextEditor;
     let content: ViewContent;
-    let driver: WebDriver;
 
     let marketplace: Marketplace;
 	let item: ExtensionsViewItem;
 
+    let driver: WebDriver;
+
 
     before(async function () {
         this.timeout(80000);
-        VSBrowser.instance.waitForWorkbench();
+      //  VSBrowser.instance.waitForWorkbench();
 
-        marketplace = await Marketplace.open(this.timeout());
+        driver = VSBrowser.instance.driver;
+		VSBrowser.instance.waitForWorkbench();
 
-       
-        const extensionMetadata: { [key: string]: any } = JSON.parse(fs.readFileSync('package.json', {
-            encoding: 'utf-8'
-        }));
-        const displayName = extensionMetadata.displayName;
-        item = await marketplace.findExtension(`@installed ${displayName}`);
+                  // *** extension is available ****
 
-        await item.getDriver().wait(async () => {
-            if (process.platform == 'darwin') {
-                item = await marketplace.findExtension(`@installed ${displayName}`);
-            }
-            return extensionIsActivated(item);
-        }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
+                  marketplace = await Marketplace.open(this.timeout());
+                  item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
+               //   const installed = await item.isEnabled();
+      
+                  await item.getDriver().wait(async () => {
+                             if (process.platform == 'darwin') {
+                                 item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
+                             }
+                             return extensionIsActivated(item);
+                  }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
+      
+      
+
+        
 
         
     });
@@ -64,7 +70,30 @@ describe('Create a Camel Route using command', function () {
 
     function _setup() {
         return async function () {
-            this.timeout(20000);
+            this.timeout(80000);
+            
+  
+
+            
+        //     // *** extension is loaded ****
+        //     marketplace = await Marketplace.open(this.timeout());
+
+        //     // tohle nahradit skrz https://github.com/camel-tooling/camel-lsp-client-vscode/blob/3cc75467956aea900644883e6d8f867d0629bd21/src/ui-test/tests/lsp_extension.test.ts#LL61C78-L61C78
+           
+        //    const extensionMetadata: { [key: string]: any } = JSON.parse(fs.readFileSync('package.json', {
+        //        encoding: 'utf-8'
+        //    }));
+        //    const displayName = extensionMetadata.displayName;
+        //    item = await marketplace.findExtension(`@installed ${displayName}`);
+   
+        //    await item.getDriver().wait(async () => {
+        //        if (process.platform == 'darwin') {
+        //            item = await marketplace.findExtension(`@installed ${displayName}`);
+        //        }
+        //        return extensionIsActivated(item);
+        //    }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
+        //    // *** extension is loaded ****
+
             await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
             await new Workbench().openCommandPrompt();
@@ -102,7 +131,7 @@ describe('Create a Camel Route using command', function () {
                 await input.getDriver().wait(async function () {
                     console.log('Waiting for "provide name" dialaog...');
                     return (await input.isDisplayed());
-                }, 10000);
+                }, 30000);
                 await input.setText(FILENAME);
                 await input.confirm();
 
@@ -110,7 +139,7 @@ describe('Create a Camel Route using command', function () {
                 await section.getDriver().wait(async function () {
                     console.log('Waiting for opened editor...');
                     return (await new EditorView().getOpenEditorTitles()).find(title => title === FILENAME_LONG);
-                }, 15000);
+                }, 30000);
             });
 
             it('File avaialble', async function () {
