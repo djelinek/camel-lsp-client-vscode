@@ -16,7 +16,8 @@
  */
 import { expect } from "chai";
 import path = require("path");
-import { ActivityBar, DefaultTreeSection, DefaultWait, EditorView, InputBox, SideBarView, TextEditor, VSBrowser, ViewContent, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, By, DefaultTreeSection, DefaultWait, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
+import * as fs from 'fs';
 
 describe('Create a Camel Route using command', function () {
     this.timeout(240000);
@@ -27,10 +28,30 @@ describe('Create a Camel Route using command', function () {
     let input: InputBox;
     let editor: TextEditor;
     let content: ViewContent;
+    let driver: WebDriver;
+
+    let marketplace: Marketplace;
+	let item: ExtensionsViewItem;
+
 
     before(async function () {
         this.timeout(20000);
         VSBrowser.instance.waitForWorkbench();
+
+        marketplace = await Marketplace.open(this.timeout());
+        const extensionMetadata: { [key: string]: any } = JSON.parse(fs.readFileSync('package.json', {
+            encoding: 'utf-8'
+        }));
+        const displayName = extensionMetadata.displayName;
+        item = await marketplace.findExtension(`@installed ${displayName}`);
+
+        await item.getDriver().wait(async () => {
+            if (process.platform == 'darwin') {
+                item = await marketplace.findExtension(`@installed ${displayName}`);
+            }
+            return extensionIsActivated(item);
+        }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
+
         
     });
 
@@ -41,13 +62,9 @@ describe('Create a Camel Route using command', function () {
 
     function _setup() {
         return async function () {
-            this.timeout(80000);
-
+            this.timeout(20000);
             await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
-
-            await DefaultWait.sleep(60000);
-
             await new Workbench().openCommandPrompt();
             input = await InputBox.create();
         };
@@ -125,4 +142,19 @@ function deleteFile(filename: string): void {
         if (err) return console.error(err)
         console.log('File ' + filename + ' removed successfully.')
     });
+}
+
+async function extensionIsActivated(extension: ExtensionsViewItem): Promise<boolean> {
+    try {
+        const activationTime = await extension.findElement(By.className('activationTime'));
+        if (activationTime !== undefined) {
+            console.log('plugin activated');
+            return true;
+        } else {
+
+            return false;
+        }
+    } catch (err) {
+        return false;
+    }
 }
