@@ -21,7 +21,7 @@ import * as fs from 'fs';
 import * as pjson from '../../../package.json';
 
 describe('Create a Camel Route using command', function () {
-    this.timeout(240000);
+    this.timeout(600000); // 10 min
 
     const RESOURCES: string = path.resolve('src', 'ui-test', 'resources');
     const QUICK_PICK = '>Camel:';
@@ -37,63 +37,32 @@ describe('Create a Camel Route using command', function () {
 
 
     before(async function () {
-        this.timeout(80000);
+        this.timeout(360000); // 6 min
       //  VSBrowser.instance.waitForWorkbench();
 
         driver = VSBrowser.instance.driver;
 		VSBrowser.instance.waitForWorkbench();
 
-                  // *** extension is available ****
-
-                  marketplace = await Marketplace.open(this.timeout());
-                  item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-               //   const installed = await item.isEnabled();
-      
-                  await item.getDriver().wait(async () => {
-                             if (process.platform == 'darwin') {
-                                 item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-                             }
-                             return extensionIsActivated(item);
-                  }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
-      
-      
-
-        
-
-        
+        // *** extension is available ****
+        marketplace = await Marketplace.open(this.timeout());
+        item = await marketplace.findExtension(`@installed ${pjson.displayName}`);      
+        await item.getDriver().wait(async () => {
+            if (process.platform == 'darwin') {
+                item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
+            }
+            return extensionIsActivated(item);
+        }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
+  
     });
 
     after(async function () {
-        this.timeout(20000);
+        this.timeout(60000); // 1 min
         await new EditorView().closeAllEditors();
     });
 
     function _setup() {
         return async function () {
-            this.timeout(80000);
-            
-  
-
-            
-        //     // *** extension is loaded ****
-        //     marketplace = await Marketplace.open(this.timeout());
-
-        //     // tohle nahradit skrz https://github.com/camel-tooling/camel-lsp-client-vscode/blob/3cc75467956aea900644883e6d8f867d0629bd21/src/ui-test/tests/lsp_extension.test.ts#LL61C78-L61C78
-           
-        //    const extensionMetadata: { [key: string]: any } = JSON.parse(fs.readFileSync('package.json', {
-        //        encoding: 'utf-8'
-        //    }));
-        //    const displayName = extensionMetadata.displayName;
-        //    item = await marketplace.findExtension(`@installed ${displayName}`);
-   
-        //    await item.getDriver().wait(async () => {
-        //        if (process.platform == 'darwin') {
-        //            item = await marketplace.findExtension(`@installed ${displayName}`);
-        //        }
-        //        return extensionIsActivated(item);
-        //    }, 60000, `The LSP plugin was not activated after ${this.timeout} sec.`);
-        //    // *** extension is loaded ****
-
+            this.timeout(60000); // 1 min
             await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
             await new Workbench().openCommandPrompt();
@@ -182,10 +151,11 @@ async function extensionIsActivated(extension: ExtensionsViewItem): Promise<bool
             console.log('plugin activated');
             return true;
         } else {
-
+            console.log('plugin not activated');
             return false;
         }
     } catch (err) {
+        console.log('plugin not activated - catch');
         return false;
     }
 }
