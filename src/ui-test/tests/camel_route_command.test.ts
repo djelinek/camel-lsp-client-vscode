@@ -16,7 +16,7 @@
  */
 import { expect } from "chai";
 import path = require("path");
-import { ActivityBar, By, DefaultTreeSection, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, By, DefaultTreeSection, DefaultWait, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
 import * as fs from 'fs';
 import * as pjson from '../../../package.json';
 
@@ -38,15 +38,9 @@ describe('Create a Camel Route using command', function () {
 
 
     before(async function () {
-        this.timeout(60000); // 6 min
-      //  VSBrowser.instance.waitForWorkbench();
-
+        this.timeout(60000); // 1 min
         driver = VSBrowser.instance.driver;
 		VSBrowser.instance.waitForWorkbench();
-        
-
-        
-  
     });
 
     after(async function () {
@@ -70,6 +64,7 @@ describe('Create a Camel Route using command', function () {
                 return extensionIsActivated(item);
             }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
 
+            await DefaultWait.sleep(30000);
             activityBar = new ActivityBar();
             const controls = await activityBar.getViewControl('Explorer');
             controls.openView();
