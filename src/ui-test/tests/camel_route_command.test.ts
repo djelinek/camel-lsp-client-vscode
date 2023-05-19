@@ -34,24 +34,18 @@ describe('Create a Camel Route using command', function () {
 	let item: ExtensionsViewItem;
 
     let driver: WebDriver;
+    let activityBar: ActivityBar;
 
 
     before(async function () {
-        this.timeout(360000); // 6 min
+        this.timeout(60000); // 6 min
       //  VSBrowser.instance.waitForWorkbench();
 
         driver = VSBrowser.instance.driver;
 		VSBrowser.instance.waitForWorkbench();
+        
 
-        // *** extension is available ****
-        marketplace = await Marketplace.open(this.timeout());
-        item = await marketplace.findExtension(`@installed ${pjson.displayName}`);      
-        await item.getDriver().wait(async () => {
-            if (process.platform == 'darwin') {
-                item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-            }
-            return extensionIsActivated(item);
-        }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
+        
   
     });
 
@@ -62,9 +56,24 @@ describe('Create a Camel Route using command', function () {
 
     function _setup() {
         return async function () {
-            this.timeout(60000); // 1 min
+            this.timeout(360000); // 6 min
             await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
+
+            // *** extension is available ****
+            marketplace = await Marketplace.open(this.timeout());
+            item = await marketplace.findExtension(`@installed ${pjson.displayName}`);      
+            await item.getDriver().wait(async () => {
+                if (process.platform == 'darwin') {
+                    item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
+                }
+                return extensionIsActivated(item);
+            }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
+
+            activityBar = new ActivityBar();
+            const controls = await activityBar.getViewControl('Explorer');
+            controls.openView();
+
             await new Workbench().openCommandPrompt();
             input = await InputBox.create();
         };
