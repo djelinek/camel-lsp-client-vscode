@@ -66,7 +66,12 @@ describe('Create a Camel Route using command', function () {
 
             await DefaultWait.sleep(30000);
             activityBar = new ActivityBar();
-            const controls = await activityBar.getViewControl('Explorer');
+            let controls = (await activityBar.getViewControl('Explorer'));
+
+            while(!controls.isEnabled){
+                controls = (await activityBar.getViewControl('Explorer'));
+            }
+           
             controls.openView();
 
             await new Workbench().openCommandPrompt();
