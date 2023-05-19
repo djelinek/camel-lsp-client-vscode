@@ -52,7 +52,7 @@ describe('Create a Camel Route using command', function () {
     function _setup() {
         return async function () {
             this.timeout(360000); // 6 min
-            await new EditorView().closeAllEditors();
+   //         await new EditorView().closeAllEditors();
             await VSBrowser.instance.openResources(RESOURCES);
 
             // *** extension is available ****
