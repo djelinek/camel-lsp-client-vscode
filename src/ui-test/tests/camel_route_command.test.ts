@@ -19,6 +19,7 @@ import path = require("path");
 import { ActivityBar, By, DefaultTreeSection, DefaultWait, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
 import * as fs from 'fs';
 import * as pjson from '../../../package.json';
+import * as utils from '../utils/testUtils';
 
 describe('Create a Camel Route using command', function () {
     this.timeout(600000); // 10 min
@@ -64,15 +65,26 @@ describe('Create a Camel Route using command', function () {
                 return extensionIsActivated(item);
             }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
 
-            await DefaultWait.sleep(30000);
-            activityBar = new ActivityBar();
-            let controls = (await activityBar.getViewControl('Explorer'));
 
-            while(!controls.isEnabled){
-                controls = (await activityBar.getViewControl('Explorer'));
-            }
-           
-            controls.openView();
+
+            const view = new SideBarView();
+            // to open a specific view and look it up
+            const control = await new ActivityBar().getViewControl('Explorer');
+            await control.openView();
+            
+
+
+            // await DefaultWait.sleep(30000);
+            // activityBar = new ActivityBar();
+            // let controls = (await activityBar.getViewControl('Explorer'));
+
+            // while(!controls.isEnabled){
+            //     controls = (await activityBar.getViewControl('Explorer'));
+            // }           
+            // controls.openView();
+
+
+
 
             await new Workbench().openCommandPrompt();
             input = await InputBox.create();
