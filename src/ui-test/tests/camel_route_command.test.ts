@@ -14,169 +14,123 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { ActivityBar, By, DefaultTreeSection, EditorView, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
 import { expect } from "chai";
-import path = require("path");
-import { ActivityBar, By, DefaultTreeSection, DefaultWait, EditorView, ExtensionsViewItem, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, ViewContent, WebDriver, Workbench } from "vscode-uitests-tooling";
-import * as fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs-extra';
 import * as pjson from '../../../package.json';
-import * as utils from '../utils/testUtils';
 
 describe('Create a Camel Route using command', function () {
-    this.timeout(600000); // 10 min
+	this.timeout(600000); // 10 min
 
-    const RESOURCES: string = path.resolve('src', 'ui-test', 'resources');
-    const QUICK_PICK = '>Camel:';
+	const RESOURCES: string = path.resolve('src', 'ui-test', 'resources');
 
-    let input: InputBox;
-    let editor: TextEditor;
-    let content: ViewContent;
+	let driver: WebDriver;
+	let input: InputBox;
+	let sideBar: SideBarView;
 
-    let marketplace: Marketplace;
-	let item: ExtensionsViewItem;
+	before(async function () {
+		this.timeout(60000); // 1 min
+		driver = VSBrowser.instance.driver;
 
-    let driver: WebDriver;
-    let activityBar: ActivityBar;
+		await VSBrowser.instance.openResources(RESOURCES);
+		await VSBrowser.instance.waitForWorkbench();
 
+		// *** extension is activated ****
+		const marketplace = await Marketplace.open();
+		await driver.wait(async function () {
+			return await extensionIsActivated(marketplace);
+		}, 300000, `The LSP extension was not activated after ${this.timeout} sec.`); // 5 min
+	});
 
-    before(async function () {
-        this.timeout(60000); // 1 min
-        driver = VSBrowser.instance.driver;
-		VSBrowser.instance.waitForWorkbench();
-    });
+	const DSL_LIST = [
+		// DSL, COMMAND, FILENAME, FILENAME LONG, EXAMPLE FILE
+		['XML', 'Camel: Create a Camel Route using XML DSL', 'xmlSample', 'xmlSample.xml', 'XML.xml'],
+		['Java', 'Camel: Create a Camel Route using Java DSL', 'Java', 'Java.java', 'Java.java'],
+		['Yaml', 'Camel: Create a Camel Route using Yaml DSL', 'yamlSample', 'yamlSample.camel.yaml', 'YAML.yaml']
+	];
 
-    after(async function () {
-        this.timeout(60000); // 1 min
-        await new EditorView().closeAllEditors();
-    });
+	DSL_LIST.forEach(function (dsl) {
 
-    function _setup() {
-        return async function () {
-            this.timeout(360000); // 6 min
-   //         await new EditorView().closeAllEditors();
-            await VSBrowser.instance.openResources(RESOURCES);
+		const DSL = dsl.at(0);
+		const COMMAND = dsl.at(1);
+		const FILENAME = dsl.at(2);
+		const FILENAME_LONG = dsl.at(3);
+		const EXAMPLE = dsl.at(4);
 
-            // *** extension is available ****
-            marketplace = await Marketplace.open(this.timeout());
-            item = await marketplace.findExtension(`@installed ${pjson.displayName}`);      
-            await item.getDriver().wait(async () => {
-                if (process.platform == 'darwin') {
-                    item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-                }
-                return extensionIsActivated(item);
-            }, 300000, `The LSP plugin was not activated after ${this.timeout} sec.`); // 5 min
+		describe(`${DSL} DSL`, function () {
 
+			before(async function () {
+				sideBar = await (await new ActivityBar().getViewControl('Explorer'))?.openView();
+			});
 
+			after(async function () {
+				await new EditorView().closeAllEditors();
+				deleteFile(FILENAME_LONG);
+			});
 
-            const view = new SideBarView();
-            // to open a specific view and look it up
-            const control = await new ActivityBar().getViewControl('Explorer');
-            await control.openView();
-            
+			it('Create file', async function () {
+				await new Workbench().executeCommand(COMMAND);
 
+				await driver.wait(async function () {
+					console.log('Waiting for "provide name" dialog...');
+					input = await InputBox.create();
+					return (await input.isDisplayed());
+				}, 30000);
+				await input.setText(FILENAME);
+				await input.confirm();
 
-            // await DefaultWait.sleep(30000);
-            // activityBar = new ActivityBar();
-            // let controls = (await activityBar.getViewControl('Explorer'));
+				await driver.wait(async function () {
+					console.log('Waiting for opened editor...');
+					return (await new EditorView().getOpenEditorTitles()).find(title => title === FILENAME_LONG);
+				}, 30000);
+			});
 
-            // while(!controls.isEnabled){
-            //     controls = (await activityBar.getViewControl('Explorer'));
-            // }           
-            // controls.openView();
+			it('File available', async function () {
+				const tree = await sideBar.getContent().getSection('resources') as DefaultTreeSection;
+				const items = await tree.getVisibleItems();
 
+				const labels = await Promise.all(items.map(item => item.getLabel()));
+				expect(labels).contains(FILENAME_LONG);
+			});
 
+			it('Check file content', async function () {
+				const editor = await new EditorView().openEditor(FILENAME_LONG) as TextEditor;
 
+				const text = await editor.getText();
+				expect(text).equals(getExampleContent(EXAMPLE));
+			});
+		});
+	});
 
-            await new Workbench().openCommandPrompt();
-            input = await InputBox.create();
-        };
-    }
+	function getExampleContent(filename: string): string {
+		return fs.readFileSync(path.resolve(RESOURCES, 'camel_route_command', filename), { encoding: 'utf8', flag: 'r' });
+	}
 
-    function _clean(file: string) {
-        return async function () {
-            deleteFile(file);
-        };
-    }
+	function deleteFile(filename: string): void {
+		fs.remove(path.resolve(RESOURCES, filename), (err: any) => {
+			if (err) {
+				return console.error(err);
+			}
+			console.log('File ' + filename + ' removed successfully.');
+		});
+	}
 
-    const DSL_LIST = [
-        // DSL, COMMAND, FILENAME, FILENAME LONG, EXAMPLE FILE
-        ['XML', 'Camel: Create a Camel Route using XML DSL', 'xmlSample', 'xmlSample.xml', 'XML.xml'],
-        ['Java', 'Camel: Create a Camel Route using Java DSL', 'Java', 'Java.java', 'Java.java'],
-        ['Yaml', 'Camel: Create a Camel Route using Yaml DSL', 'yamlSample', 'yamlSample.camel.yaml', 'YAML.yaml']
-    ];
+	async function extensionIsActivated(marketplace: Marketplace): Promise<boolean> {
+		try {
+			const item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
+			const activationTime = await item.findElement(By.className('activationTime'));
+			if (activationTime !== undefined) {
+				console.log('plugin activated');
+				return true;
+			} else {
+				console.log('plugin not activated');
+				return false;
+			}
+		} catch (err) {
+			console.log('plugin not activated - catch');
+			return false;
+		}
+	}
 
-    DSL_LIST.forEach((dsl) => {
-        const DSL = dsl.at(0);
-        const COMMAND = dsl.at(1);
-        const FILENAME = dsl.at(2);
-        const FILENAME_LONG = dsl.at(3);
-        const EXAMPLE = dsl.at(4);
-
-        describe(`${DSL} DSL`, function () {
-            before(_setup());
-            after(_clean(FILENAME_LONG));
-
-            it('Create file', async function () {
-                await input.setText(QUICK_PICK);
-                await input.selectQuickPick(COMMAND);
-                await input.getDriver().wait(async function () {
-                    console.log('Waiting for "provide name" dialaog...');
-                    return (await input.isDisplayed());
-                }, 30000);
-                await input.setText(FILENAME);
-                await input.confirm();
-
-                const section = await new SideBarView().getContent().getSection('resources');
-                await section.getDriver().wait(async function () {
-                    console.log('Waiting for opened editor...');
-                    return (await new EditorView().getOpenEditorTitles()).find(title => title === FILENAME_LONG);
-                }, 30000);
-            });
-
-            it('File avaialble', async function () {
-                (await new ActivityBar().getViewControl('Explorer'))?.openView();
-                content = new SideBarView().getContent();
-                const tree = await content.getSection('resources') as DefaultTreeSection;
-                const items = await tree.getVisibleItems();
-                const labels = await Promise.all(items.map(item => item.getLabel()));
-                expect(labels).contains(FILENAME_LONG);
-            });
-
-            it('Check file content', async function () {
-                editor = await new EditorView().openEditor(FILENAME_LONG) as TextEditor;
-                const text = await editor.getText();
-                expect(text).equals(getExampleContent(EXAMPLE));
-            });
-        });
-    });
 });
-
-function getExampleContent(filename: string): string {
-    const fs = require('fs-extra');
-    const data = fs.readFileSync(path.resolve('src', 'ui-test', 'resources', 'camel_route_command', filename),
-        { encoding: 'utf8', flag: 'r' });
-    return data;
-}
-
-function deleteFile(filename: string): void {
-    const fs = require('fs-extra');
-    fs.remove(path.resolve('src', 'ui-test', 'resources', filename), err => {
-        if (err) return console.error(err)
-        console.log('File ' + filename + ' removed successfully.')
-    });
-}
-
-async function extensionIsActivated(extension: ExtensionsViewItem): Promise<boolean> {
-    try {
-        const activationTime = await extension.findElement(By.className('activationTime'));
-        if (activationTime !== undefined) {
-            console.log('plugin activated');
-            return true;
-        } else {
-            console.log('plugin not activated');
-            return false;
-        }
-    } catch (err) {
-        console.log('plugin not activated - catch');
-        return false;
-    }
-}
