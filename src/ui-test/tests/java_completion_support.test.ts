@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import {
 	BottomBarPanel,
 	MarkerType,
@@ -24,7 +23,7 @@ import {
 	WaitUntil,
 	DefaultWait,
 	before,
-	EditorView
+	WebDriver
 } from 'vscode-uitests-tooling';
 import { assert } from 'chai';
 import * as path from 'path';
@@ -38,10 +37,12 @@ describe('Java DSL support', function () {
 	const CAMEL_CONTEXT_JAVA = 'camel-context.java';
 	const URI_POSITION = 15;
 
+	let driver: WebDriver;
 	let contentAssist: ContentAssist;
 	let editor: TextEditor;
 
 	before(async function () {
+		driver = VSBrowser.instance.driver;
 		await VSBrowser.instance.openResources(RESOURCES);
 		await VSBrowser.instance.waitForWorkbench();
 	});
@@ -50,11 +51,8 @@ describe('Java DSL support', function () {
 		return async function () {
 			this.timeout(20000);
 			await VSBrowser.instance.openResources(path.join(RESOURCES, camel_java));
-			const ew = new EditorView();
-			await ew.getDriver().wait(async function () {
-				return (await ew.getOpenEditorTitles()).find(t => t === camel_java);
-			}, 10000);
-			editor = await utils.activateEditor(camel_java);
+			await utils.waitUntilEditorIsOpened(driver, camel_java);
+			editor = await utils.activateEditor(driver, camel_java);
 		}
 	};
 
@@ -71,7 +69,7 @@ describe('Java DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_JAVA));
 
 		beforeEach(async function () {
-			editor = await utils.activateEditor(CAMEL_CONTEXT_JAVA);
+			editor = await utils.activateEditor(driver, CAMEL_CONTEXT_JAVA);
 		});
 
 		it('Open "camel-context.java" file inside Editor View', async function () {
@@ -80,7 +78,7 @@ describe('Java DSL support', function () {
 		});
 
 		it('Code completion is working for component schemes (the part before the ":")', async function () {
-			await utils.typeTextAtExt(9, URI_POSITION, 'timer');
+			await editor.typeTextAt(9, URI_POSITION, 'timer');
 			const expectedContentAssist = 'timer:timerName';
 			contentAssist = await ca.waitUntilContentAssistContains(expectedContentAssist);
 
@@ -92,7 +90,7 @@ describe('Java DSL support', function () {
 		});
 
 		it('Code completion is working for endpoint options (the part after the "?")', async function () {
-			await utils.typeTextAtExt(9, URI_POSITION + 15, '?');
+			await editor.typeTextAt(9, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			assert.equal(await utils.getTextExt(delay), 'delay');
@@ -102,7 +100,7 @@ describe('Java DSL support', function () {
 		});
 
 		it('Code completion is working for additional endpoint options (the part after "&")', async function () {
-			await utils.typeTextAtExt(9, URI_POSITION + 26, '&');
+			await editor.typeTextAt(9, URI_POSITION + 26, '&');
 			contentAssist = await ca.waitUntilContentAssistContains('exchangePattern');
 			const exchange = await contentAssist.getItem('exchangePattern');
 			assert.equal(await utils.getTextExt(exchange), 'exchangePattern');
@@ -110,7 +108,7 @@ describe('Java DSL support', function () {
 
 			assert.equal((await editor.getTextAtLine(9)).trim(), 'from("timer:timerName?delay=1000&exchangePattern=").routeId("_fromID");');
 
-			await utils.typeTextAtExt(9, URI_POSITION + 43, 'In');
+			await editor.typeTextAt(9, URI_POSITION + 43, 'In');
 			contentAssist = await ca.waitUntilContentAssistContains('InOnly');
 			const inOnly = await contentAssist.getItem('InOnly');
 			assert.equal(await utils.getTextExt(inOnly), 'InOnly');
@@ -126,21 +124,21 @@ describe('Java DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_JAVA));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_CONTEXT_JAVA);
+			await utils.activateEditor(driver, CAMEL_CONTEXT_JAVA);
 		});
 
 		it('Duplicate endpoint options are filtered out', async function () {
-			await utils.typeTextAtExt(9, URI_POSITION, 'timer');
+			await editor.typeTextAt(9, URI_POSITION, 'timer');
 			contentAssist = await ca.waitUntilContentAssistContains('timer:timerName');
 			const timer = await contentAssist.getItem('timer:timerName');
 			await timer.click();
 
-			await utils.typeTextAtExt(9, URI_POSITION + 15, '?');
+			await editor.typeTextAt(9, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			await delay.click();
 
-			await utils.typeTextAtExt(9, URI_POSITION + 26, '&de');
+			await editor.typeTextAt(9, URI_POSITION + 26, '&de');
 			contentAssist = await editor.toggleContentAssist(true) as ContentAssist;
 			await new WaitUntil().assistHasItems(contentAssist, DefaultWait.TimePeriod.DEFAULT);
 			const filtered = await contentAssist.hasItem('delay');
@@ -158,25 +156,25 @@ describe('Java DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_JAVA));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_CONTEXT_JAVA);
+			await utils.activateEditor(driver, CAMEL_CONTEXT_JAVA);
 		});
 
 
 		it('LSP diagnostics support for Java DSL', async function () {
-			await utils.typeTextAtExt(9, URI_POSITION, 'timer');
+			await editor.typeTextAt(9, URI_POSITION, 'timer');
 			contentAssist = await ca.waitUntilContentAssistContains('timer:timerName');
 			const timer = await contentAssist.getItem('timer:timerName');
 			await timer.click();
 
-			await utils.typeTextAtExt(9, URI_POSITION + 15, '?');
+			await editor.typeTextAt(9, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			await delay.click();
 
-			await utils.typeTextAtExt(9, URI_POSITION + 26, 'r');
-			const problemsView = await utils.openView('Problems');
+			await editor.typeTextAt(9, URI_POSITION + 26, 'r');
+			const problemsView = await utils.openProblemsView();
 
-			await problemsView.getDriver().wait(async function () {
+			await driver.wait(async function () {
 				const innerMarkers = await problemsView.getAllVisibleMarkers(MarkerType.Error);
 				return innerMarkers.length > 0;
 			}, DefaultWait.TimePeriod.MEDIUM);

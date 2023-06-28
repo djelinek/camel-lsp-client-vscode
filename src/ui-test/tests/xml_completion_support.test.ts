@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import {
 	BottomBarPanel,
 	MarkerType,
@@ -23,7 +22,7 @@ import {
 	ContentAssist,
 	WaitUntil,
 	DefaultWait,
-	EditorView
+	WebDriver
 } from 'vscode-uitests-tooling';
 import { assert } from 'chai';
 import * as path from 'path';
@@ -38,10 +37,12 @@ describe('XML DSL support', function () {
 	const CAMEL_ROUTE_XML = 'camel-route.xml';
 	const URI_POSITION = 33;
 
+	let driver: WebDriver;
 	let contentAssist: ContentAssist;
 	let editor: TextEditor;
 
 	before(async function () {
+		driver = VSBrowser.instance.driver;
 		await VSBrowser.instance.openResources(RESOURCES);
 		await VSBrowser.instance.waitForWorkbench();
 	});
@@ -50,11 +51,8 @@ describe('XML DSL support', function () {
 		return async function () {
 			this.timeout(20000);
 			await VSBrowser.instance.openResources(path.join(RESOURCES, camel_xml));
-			const ew = new EditorView();
-			await ew.getDriver().wait(async function () {
-				return (await ew.getOpenEditorTitles()).find(t => t === camel_xml);
-			}, 10000);
-			editor = await utils.activateEditor(camel_xml);
+			await utils.waitUntilEditorIsOpened(driver, camel_xml);
+			editor = await utils.activateEditor(driver, camel_xml);
 		}
 	};
 
@@ -71,7 +69,7 @@ describe('XML DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_XML));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_CONTEXT_XML);
+			await utils.activateEditor(driver, CAMEL_CONTEXT_XML);
 		});
 
 		it('Open "camel-context.xml" file inside Editor View', async function () {
@@ -80,7 +78,7 @@ describe('XML DSL support', function () {
 		});
 
 		it('Code completion is working for component schemes (the part before the ":")', async function () {
-			await utils.typeTextAtExt(3, URI_POSITION, 'timer');
+			await editor.typeTextAt(3, URI_POSITION, 'timer');
 			const expectedContentAssist = 'timer:timerName'
 			contentAssist = await ca.waitUntilContentAssistContains(expectedContentAssist);
 
@@ -92,7 +90,7 @@ describe('XML DSL support', function () {
 		});
 
 		it('Code completion is working for endpoint options (the part after the "?")', async function () {
-			await utils.typeTextAtExt(3, URI_POSITION + 15, '?');
+			await editor.typeTextAt(3, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			assert.equal(await utils.getTextExt(delay), 'delay');
@@ -102,7 +100,7 @@ describe('XML DSL support', function () {
 		});
 
 		it('Code completion is working for additional endpoint options (the part after "&")', async function () {
-			await utils.typeTextAtExt(3, URI_POSITION + 26, '&amp;exchange');
+			await editor.typeTextAt(3, URI_POSITION + 26, '&amp;exchange');
 			contentAssist = await ca.waitUntilContentAssistContains('exchangePattern');
 			const exchange = await contentAssist.getItem('exchangePattern');
 			assert.equal(await utils.getTextExt(exchange), 'exchangePattern');
@@ -110,7 +108,7 @@ describe('XML DSL support', function () {
 
 			assert.equal((await editor.getTextAtLine(3)).trim(), '<from id="_fromID" uri="timer:timerName?delay=1000&amp;exchangePattern="/>');
 
-			await utils.typeTextAtExt(3, URI_POSITION + 47, 'In');
+			await editor.typeTextAt(3, URI_POSITION + 47, 'In');
 			contentAssist = await ca.waitUntilContentAssistContains('InOnly');
 			const inOnly = await contentAssist.getItem('InOnly');
 			assert.equal(await utils.getTextExt(inOnly), 'InOnly');
@@ -126,21 +124,21 @@ describe('XML DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_XML));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_CONTEXT_XML);
+			await utils.activateEditor(driver, CAMEL_CONTEXT_XML);
 		});
 
 		it('Duplicate endpoint options are filtered out', async function () {
-			await utils.typeTextAtExt(3, URI_POSITION, 'timer');
+			await editor.typeTextAt(3, URI_POSITION, 'timer');
 			contentAssist = await ca.waitUntilContentAssistContains('timer:timerName');
 			const timer = await contentAssist.getItem('timer:timerName');
 			await timer.click();
 
-			await utils.typeTextAtExt(3, URI_POSITION + 15, '?');
+			await editor.typeTextAt(3, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			await delay.click();
 
-			await utils.typeTextAtExt(3, URI_POSITION + 26, '&amp;de');
+			await editor.typeTextAt(3, URI_POSITION + 26, '&amp;de');
 			contentAssist = await editor.toggleContentAssist(true) as ContentAssist;
 			await new WaitUntil().assistHasItems(contentAssist, DefaultWait.TimePeriod.DEFAULT);
 			const filtered = await contentAssist.hasItem('delay');
@@ -158,24 +156,24 @@ describe('XML DSL support', function () {
 		after(_clean(CAMEL_CONTEXT_XML));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_CONTEXT_XML);
+			await utils.activateEditor(driver, CAMEL_CONTEXT_XML);
 		});
 
 		it('LSP diagnostics support for XML DSL', async function () {
-			await utils.typeTextAtExt(3, URI_POSITION, 'timer');
+			await editor.typeTextAt(3, URI_POSITION, 'timer');
 			contentAssist = await ca.waitUntilContentAssistContains('timer:timerName');
 			const timer = await contentAssist.getItem('timer:timerName');
 			await timer.click();
 
-			await utils.typeTextAtExt(3, URI_POSITION + 15, '?');
+			await editor.typeTextAt(3, URI_POSITION + 15, '?');
 			contentAssist = await ca.waitUntilContentAssistContains('delay');
 			const delay = await contentAssist.getItem('delay');
 			await delay.click();
 
-			await utils.typeTextAtExt(3, URI_POSITION + 26, 'r');
-			const problemsView = await utils.openView('Problems');
+			await editor.typeTextAt(3, URI_POSITION + 26, 'r');
+			const problemsView = await utils.openProblemsView();
 
-			await problemsView.getDriver().wait(async function () {
+			await driver.wait(async function () {
 				const innerMarkers = await problemsView.getAllVisibleMarkers(MarkerType.Error);
 				return innerMarkers.length > 0;
 			}, DefaultWait.TimePeriod.MEDIUM);
@@ -197,11 +195,11 @@ describe('XML DSL support', function () {
 		after(_clean(CAMEL_ROUTE_XML));
 
 		beforeEach(async function () {
-			await utils.activateEditor(CAMEL_ROUTE_XML);
+			await utils.activateEditor(driver, CAMEL_ROUTE_XML);
 		});
 
 		it('Auto-completion for referenced ID of "direct" component', async function () {
-			await utils.typeTextAtExt(6, 29, DIRECT_COMPONENT_NAME);
+			await editor.typeTextAt(6, 29, DIRECT_COMPONENT_NAME);
 			contentAssist = await ca.waitUntilContentAssistContains(DIRECT_COMPONENT_NAME);
 
 			const direct = await contentAssist.getItem(DIRECT_COMPONENT_NAME);
@@ -211,7 +209,7 @@ describe('XML DSL support', function () {
 		});
 
 		it('Auto-completion for referenced ID of "direct-vm" component', async function () {
-			await utils.typeTextAtExt(13, 30, DIRECT_VM_COMPONENT_NAME);
+			await editor.typeTextAt(13, 30, DIRECT_VM_COMPONENT_NAME);
 			contentAssist = await ca.waitUntilContentAssistContains(DIRECT_VM_COMPONENT_NAME);
 
 			const directVM = await contentAssist.getItem(DIRECT_VM_COMPONENT_NAME);

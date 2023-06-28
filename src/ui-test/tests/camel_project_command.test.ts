@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ActivityBar, By, DefaultTreeSection, EditorView, InputBox, Marketplace, SideBarView, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, DefaultTreeSection, EditorView, InputBox, SideBarView, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pjson from '../../../package.json';
+import * as utils from '../utils/testUtils';
 
 describe('Create a Camel Project using command', function () {
 	this.timeout(400000);
@@ -37,10 +38,7 @@ describe('Create a Camel Project using command', function () {
 		await VSBrowser.instance.openResources(SPECIFIC_WORKSPACE);
 		await VSBrowser.instance.waitForWorkbench();
 
-		const marketplace = await Marketplace.open();
-		await driver.wait(async function () {
-			return await extensionIsActivated(marketplace);
-		}, 150000, `The LSP extension was not activated after ${this.timeout} sec.`);
+		await utils.waitUntilExtensionIsActivated(driver, `${pjson.displayName}`);
 	});
 
 	before(async function () {
@@ -76,17 +74,3 @@ describe('Create a Camel Project using command', function () {
 		});
 	});
 });
-
-async function extensionIsActivated(marketplace: Marketplace): Promise<boolean> {
-	try {
-		const item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-		const activationTime = await item.findElement(By.className('activationTime'));
-		if (activationTime !== undefined) {
-			return true;
-		} else {
-			return false;
-		}
-	} catch (err) {
-		return false;
-	}
-}

@@ -14,105 +14,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { expect } from 'chai';
-import path = require('path');
-import { WebDriver, VSBrowser, Marketplace, By, EditorView, Workbench, DefaultWait, InputBox, BottomBarPanel, TerminalView } from 'vscode-uitests-tooling';
+import { WebDriver, VSBrowser, EditorView, Workbench, InputBox, before, ActivityBar, after, afterEach } from 'vscode-uitests-tooling';
 import * as pjson from '../../../package.json';
-import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as utils from '../utils/testUtils';
 
-describe('JBang user preference version set test', async function () {
-    this.timeout(60000);
+describe('JBang user preference version set test', function () {
+    this.timeout(400000);
 
     let driver: WebDriver;
     let input: InputBox;
-    let terminalView: TerminalView;
     let DEFAULT_JBANG: string;
 
-    const RESOURCES: string = path.resolve('src', 'ui-test', 'resources');
-
+    const RESOURCES = path.resolve('src', 'ui-test', 'resources');
     const FILENAME = 'test.camel.xml';
     const OLDER_JBANG_VERSION = '3.20.5';
 
     before(async function () {
-        this.timeout(200000);
-
         driver = VSBrowser.instance.driver;
         await VSBrowser.instance.openResources(RESOURCES);
         await VSBrowser.instance.waitForWorkbench();
 
-        const marketplace = await Marketplace.open();
-        await driver.wait(async function () {
-            return await extensionIsActivated(marketplace);
-        }, 150000, `The LSP extension was not activated after ${this.timeout} sec.`);
-
+        await utils.waitUntilExtensionIsActivated(driver, `${pjson.displayName}`);
         DEFAULT_JBANG = await getJBangVersion();
     });
 
     after(async function () {
-        await setJBangVersion(DEFAULT_JBANG);
+        utils.resetUserSettings('camel.languageSupport.JBangVersion');
     });
 
     describe('Different JBang versions', function () {
+
+        before(async function () {
+			await (await new ActivityBar().getViewControl('Explorer')).openView();
+        });
+
         afterEach(async function () {
+            await utils.killTerminal();
             await new EditorView().closeAllEditors();
-            deleteFile(FILENAME);
+            await utils.deleteFile(FILENAME, RESOURCES);
         });
 
         it('Default version', async function () {
-            await setJBangVersion(DEFAULT_JBANG);
-
-            await new Workbench().executeCommand('Camel: Create a Camel Route using XML DSL');
-            await driver.wait(async function () {
-                input = await InputBox.create();
-                return (await input.isDisplayed());
-            }, 30000);
-
-            await input.setText('test');
-            await input.confirm();
-
-            await waitUntilTerminalHasText(driver, [`-Dcamel.jbang.version=${DEFAULT_JBANG}`]);
-            expect(await (await activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${DEFAULT_JBANG}`);
-
-            terminalView = await new BottomBarPanel().openTerminalView();
-            await terminalView.selectChannel('Init Camel Route file with JBang');
-            await terminalView.killTerminal();
+            await initNewCamelFile('test');
+            await utils.waitUntilTerminalHasText(driver, `-Dcamel.jbang.version=${DEFAULT_JBANG}`);
+            expect(await (await utils.activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${DEFAULT_JBANG}`);
         });
 
-        it('Older version', async function () {
+        it(`Older version - ${OLDER_JBANG_VERSION}`, async function () {
             await setJBangVersion(OLDER_JBANG_VERSION);
-
-            await new Workbench().executeCommand('Camel: Create a Camel Route using XML DSL');
-            await driver.wait(async function () {
-                input = await InputBox.create();
-                return (await input.isDisplayed());
-            }, 30000);
-
-            await input.setText('test');
-            await input.confirm();
-
-            await waitUntilTerminalHasText(driver, [`-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`]);
-            expect(await (await activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`);
-
-            terminalView = await new BottomBarPanel().openTerminalView();
-            await terminalView.selectChannel('Init Camel Route file with JBang');
-            await terminalView.killTerminal();
+            await initNewCamelFile('test');
+            await utils.waitUntilTerminalHasText(driver, `-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`);
+            expect(await (await utils.activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`);
         });
     });
 
-    async function extensionIsActivated(marketplace: Marketplace): Promise<boolean> {
-        try {
-            const item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-            const activationTime = await item.findElement(By.className('activationTime'));
-            if (activationTime !== undefined) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch (err) {
-            return false;
-        }
-    }
+	async function initNewCamelFile(filename: string): Promise<void> {
+		await utils.executeCamelCommand('Create a Camel Route using XML DSL');
+		await driver.wait(async function () {
+			input = await InputBox.create();
+			return (await input.isDisplayed());
+		}, 30000);
+		await input.setText(filename);
+		await input.confirm();
+
+		await utils.waitUntilEditorIsOpened(driver, FILENAME, 220000);
+	}
 
     async function getJBangVersion(): Promise<string> {
         const textField = await (await new Workbench().openSettings()).findSetting('JBang Version', 'Camel', 'Language Support');
@@ -128,35 +96,4 @@ describe('JBang user preference version set test', async function () {
         await new EditorView().closeEditor('Settings');
     }
 
-    async function waitUntilTerminalHasText(driver: WebDriver, textArray: string[], interval = 500): Promise<void> {
-        await driver.wait(async function () {
-            try {
-                await DefaultWait.sleep(10000);
-                const terminal = await activateTerminalView();
-                const terminalText = await terminal.getText();
-                for (const text of textArray) {
-                    if (!(terminalText.includes(text))) {
-                        return false;
-                    }
-                }
-                return true;
-            } catch (err) {
-                return false;
-            }
-        }, 220000, undefined, interval);
-    }
-
-    async function activateTerminalView(): Promise<TerminalView> {
-        // workaround ExTester issue - https://github.com/redhat-developer/vscode-extension-tester/issues/785
-        await new Workbench().executeCommand('Terminal: Focus on Terminal View');
-        return await new BottomBarPanel().openTerminalView();
-    }
-
-    function deleteFile(filename: string): void {
-        fs.remove(path.resolve(RESOURCES, filename), (err: any) => {
-            if (err) {
-                return console.error(err);
-            }
-        });
-    }
 });

@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { assert } from 'chai';
-import { Workbench, VSBrowser, TextSetting, TextEditor, ContentAssist } from 'vscode-uitests-tooling';
+import { Workbench, VSBrowser, TextSetting, TextEditor, ContentAssist, before, after } from 'vscode-uitests-tooling';
 import * as path from 'path';
 import * as utils from '../utils/testUtils';
-import * as fs from 'node:fs';
 
 describe('Camel catalog user preference version set test', function () {
     this.timeout(60000);
@@ -35,14 +33,11 @@ describe('Camel catalog user preference version set test', function () {
         await VSBrowser.instance.waitForWorkbench();
     });
 
-    // reset version to default
-    async function _setDefaultCamelCatalogVersion() {
-        resetUserSettings('camel.Camel catalog version');
-    }
-
     describe('Different catalog versions', function () {
 
-        after(_setDefaultCamelCatalogVersion);
+        after(function () {
+			utils.resetUserSettings('camel.Camel catalog version');
+        });
 
         it('Default version', async function () {
             // open file
@@ -62,7 +57,7 @@ describe('Camel catalog user preference version set test', function () {
             // check if content is expected
             const expectedContentAssist = 'file-watch:path';
             const timer = await contentAssist.getItem(expectedContentAssist);
-            assert.equal(await utils.getTextExt(timer), expectedContentAssist);
+            assert.equal(await timer.getText(), expectedContentAssist);
 
             // close file w\o saving
             await utils.closeEditor(CAMEL_CONTEXT_XML, false);
@@ -99,9 +94,4 @@ describe('Camel catalog user preference version set test', function () {
         await utils.closeEditor('Settings', true);
     }
 
-    function resetUserSettings(id: string) {
-        const settingsPath = path.resolve('test-resources', 'settings', 'User', 'settings.json');
-        const reset = fs.readFileSync(settingsPath, 'utf-8').replace(new RegExp(`"${id}.*`), '').replace(/,(?=[^,]*$)/, '');
-        fs.writeFileSync(settingsPath, reset, 'utf-8');
-    }
 });

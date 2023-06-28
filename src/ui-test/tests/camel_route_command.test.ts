@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ActivityBar, By, DefaultTreeSection, EditorView, InputBox, Marketplace, SideBarView, TextEditor, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, DefaultTreeSection, EditorView, InputBox, SideBarView, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
 import { expect } from "chai";
 import * as path from 'path';
-import * as fs from 'fs-extra';
 import * as pjson from '../../../package.json';
+import * as utils from '../utils/testUtils';
 
 describe('Create a Camel Route using command', function () {
 	this.timeout(400000);
@@ -36,10 +36,7 @@ describe('Create a Camel Route using command', function () {
 		await VSBrowser.instance.openResources(RESOURCES);
 		await VSBrowser.instance.waitForWorkbench();
 
-		const marketplace = await Marketplace.open();
-		await driver.wait(async function () {
-			return await extensionIsActivated(marketplace);
-		}, 150000, `The LSP extension was not activated after ${this.timeout} sec.`);
+		await utils.waitUntilExtensionIsActivated(driver, `${pjson.displayName}`);
 	});
 
 	const DSL_LIST = [
@@ -65,7 +62,8 @@ describe('Create a Camel Route using command', function () {
 
 			after(async function () {
 				await new EditorView().closeAllEditors();
-				deleteFile(FILENAME_LONG);
+				await utils.deleteFile(FILENAME_LONG, RESOURCES);
+				await utils.killTerminal();
 			});
 
 			it('Create file', async function () {
@@ -78,9 +76,7 @@ describe('Create a Camel Route using command', function () {
 				await input.setText(FILENAME);
 				await input.confirm();
 
-				await driver.wait(async function () {
-					return (await new EditorView().getOpenEditorTitles()).find(title => title === FILENAME_LONG);
-				}, 30000);
+				await utils.waitUntilEditorIsOpened(driver, FILENAME_LONG);
 			});
 
 			it('File available', async function () {
@@ -92,48 +88,11 @@ describe('Create a Camel Route using command', function () {
 			});
 
 			it('Check file content', async function () {
-				let editor: TextEditor;
-
-				// workaround for https://issues.redhat.com/browse/FUSETOOLS2-2099
-				await driver.wait(async function () {
-					try {
-						editor = await new EditorView().openEditor(FILENAME_LONG) as TextEditor;
-						return true;
-					} catch (err) {
-						await driver.actions().click().perform();
-						return false;
-					}
-				}, 10000, undefined, 500);
-
+				const editor = await utils.activateEditor(driver, FILENAME_LONG);
 				const text = await editor.getText();
-				expect(text).equals(getFileContent(EXAMPLE));
+				expect(text).equals(utils.getFileContent(EXAMPLE, RESOURCES));
 			});
 		});
 	});
 
-	function getFileContent(filename: string): string {
-		return fs.readFileSync(path.resolve(RESOURCES, 'camel_route_command', filename), { encoding: 'utf8', flag: 'r' });
-	}
-
-	function deleteFile(filename: string): void {
-		fs.remove(path.resolve(RESOURCES, filename), (err: any) => {
-			if (err) {
-				return console.error(err);
-			}
-		});
-	}
-
-	async function extensionIsActivated(marketplace: Marketplace): Promise<boolean> {
-		try {
-			const item = await marketplace.findExtension(`@installed ${pjson.displayName}`);
-			const activationTime = await item.findElement(By.className('activationTime'));
-			if (activationTime !== undefined) {
-				return true;
-			} else {
-				return false;
-			}
-		} catch (err) {
-			return false;
-		}
-	}
 });
