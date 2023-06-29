@@ -17,11 +17,11 @@
 
 import { expect } from 'chai';
 import path = require('path');
-import { WebDriver, VSBrowser, Marketplace, By, EditorView, Workbench, DefaultWait, InputBox, BottomBarPanel, TerminalView } from 'vscode-uitests-tooling';
+import { WebDriver, VSBrowser, Marketplace, By, EditorView, Workbench, InputBox, BottomBarPanel, TerminalView } from 'vscode-uitests-tooling';
 import * as pjson from '../../../package.json';
 import * as fs from 'fs-extra';
 
-describe('JBang user preference version set test', async function () {
+describe('JBang user preference version set test', function () {
     this.timeout(60000);
 
     let driver: WebDriver;
@@ -71,6 +71,10 @@ describe('JBang user preference version set test', async function () {
             await input.setText('test');
             await input.confirm();
 
+			await driver.wait(async function () {
+				return (await new EditorView().getOpenEditorTitles()).find(t => t === FILENAME);
+			}, 220000);
+
             await waitUntilTerminalHasText(driver, [`-Dcamel.jbang.version=${DEFAULT_JBANG}`]);
             expect(await (await activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${DEFAULT_JBANG}`);
 
@@ -90,6 +94,10 @@ describe('JBang user preference version set test', async function () {
 
             await input.setText('test');
             await input.confirm();
+
+			await driver.wait(async function () {
+				return (await new EditorView().getOpenEditorTitles()).find(t => t === FILENAME);
+			}, 220000);
 
             await waitUntilTerminalHasText(driver, [`-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`]);
             expect(await (await activateTerminalView()).getText()).to.contain(`-Dcamel.jbang.version=${OLDER_JBANG_VERSION}`);
@@ -131,7 +139,6 @@ describe('JBang user preference version set test', async function () {
     async function waitUntilTerminalHasText(driver: WebDriver, textArray: string[], interval = 500): Promise<void> {
         await driver.wait(async function () {
             try {
-                await DefaultWait.sleep(10000);
                 const terminal = await activateTerminalView();
                 const terminalText = await terminal.getText();
                 for (const text of textArray) {
