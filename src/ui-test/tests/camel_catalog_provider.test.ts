@@ -16,7 +16,7 @@
  */
 
 import { assert } from 'chai';
-import { SettingsEditor, Workbench, VSBrowser, WebDriver, By, Marketplace, ComboSetting, TextEditor, ContentAssist } from 'vscode-uitests-tooling';
+import { SettingsEditor, Workbench, VSBrowser, WebDriver, By, Marketplace, ComboSetting, TextEditor, ContentAssist, EditorView, ActivityBar } from 'vscode-uitests-tooling';
 import * as path from 'path';
 import * as utils from '../utils/testUtils';
 import * as pjson from '../../../package.json';
@@ -43,7 +43,6 @@ describe('Camel runtime provider user preference set test', function () {
     const JMX_PROP = 'jmx:serverURL';
 
     before(async function () {
-        this.timeout(200000);
         driver = VSBrowser.instance.driver;
 
         await VSBrowser.instance.openResources(RESOURCES);
@@ -53,10 +52,12 @@ describe('Camel runtime provider user preference set test', function () {
         await driver.wait(async function () {
             return await extensionIsActivated(marketplace);
         }, 150000, `The LSP extension was not activated after ${this.timeout} sec.`);
+
+        await (await new ActivityBar().getViewControl('Explorer')).openView();
     });
 
-    after(async function () {
-        await resetUserSettings('camel.Camel catalog runtime provider');
+    after(function () {
+        resetUserSettings('camel.Camel catalog runtime provider');
     });
 
     const PROVIDERS_LIST = [
@@ -66,7 +67,7 @@ describe('Camel runtime provider user preference set test', function () {
         ['KARAF', false, true, true]
     ];
 
-    PROVIDERS_LIST.forEach(async function (provider) {
+    PROVIDERS_LIST.forEach(function (provider) {
         const PROVIDER = provider.at(0).toString();
         const KNATIVE_AV = provider.at(1);
         const MONGO_AV = provider.at(2);
@@ -88,7 +89,7 @@ describe('Camel runtime provider user preference set test', function () {
 
             it('Knative component', async function () {
                 const editor = new TextEditor();
-                await editor.isDisplayed();
+                await waitForEditorIsOpen(CAMEL_CONTEXT_XML);
                 await editor.typeTextAt(3, URI_POSITION, KNATIVE);
 
                 contentAssist = await editor.toggleContentAssist(true) as ContentAssist;
@@ -105,7 +106,7 @@ describe('Camel runtime provider user preference set test', function () {
 
             it('Mongo component', async function () {
                 const editor = new TextEditor();
-                await editor.isDisplayed();
+                await waitForEditorIsOpen(CAMEL_CONTEXT_XML);
                 await editor.typeTextAt(3, URI_POSITION, MONGO);
 
                 contentAssist = await editor.toggleContentAssist(true) as ContentAssist;
@@ -122,7 +123,7 @@ describe('Camel runtime provider user preference set test', function () {
 
             it('JMX component', async function () {
                 const editor = new TextEditor();
-                await editor.isDisplayed();
+                await waitForEditorIsOpen(CAMEL_CONTEXT_XML);
                 await editor.typeTextAt(3, URI_POSITION, JMX);
 
                 contentAssist = await editor.toggleContentAssist(true) as ContentAssist;
@@ -138,6 +139,12 @@ describe('Camel runtime provider user preference set test', function () {
             });
         });
     });
+
+	async function waitForEditorIsOpen(title: string, timeout = 30000): Promise<void> {
+		await driver.wait(async function () {
+			return (await new EditorView().getOpenEditorTitles()).find(t => t === title);
+		}, timeout);
+	}
 
     async function setRuntimeProvider(provider: string): Promise<void> {
         settings = await new Workbench().openSettings();
@@ -160,7 +167,7 @@ describe('Camel runtime provider user preference set test', function () {
         }
     }
 
-    async function resetUserSettings(id: string) {
+    function resetUserSettings(id: string) {
         const settingsPath = path.resolve('test-resources', 'settings', 'User', 'settings.json');
         const reset = fs.readFileSync(settingsPath, 'utf-8').replace(new RegExp(`"${id}.*`), '').replace(/,(?=[^,]*$)/, '');
         fs.writeFileSync(settingsPath, reset, 'utf-8');
