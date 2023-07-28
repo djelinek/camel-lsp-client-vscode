@@ -16,13 +16,11 @@
  */
 
 import { assert } from "chai";
-import { ActivityBar, DefaultTreeSection, InputBox, QuickPickItem, SideBarView, TextEditor, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
-import { CODE_NAVIGATION_XML, CODE_NAVIGATION_JAVA, RESOURCES, closeEditor, waitUntilEditorIsOpened, waitUntilExtensionIsActivated } from "../utils/testUtils";
+import { ActivityBar, DefaultTreeSection, InputBox, QuickPickItem, SideBarView, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { CODE_NAVIGATION_XML, CODE_NAVIGATION_JAVA, RESOURCES, closeEditor, waitUntilEditorIsOpened, waitUntilExtensionIsActivated, activateEditor } from "../utils/testUtils";
 import * as pjson from '../../../package.json';
 import * as path from 'path';
-import * as os from 'os'
 
-// pozor na actual a expected hodnotu u assert equal! 
 let driver: WebDriver;
 
 describe('Code navigation', function () {
@@ -30,6 +28,7 @@ describe('Code navigation', function () {
 
     let input: InputBox;
     let quickpicks: QuickPickItem[];
+    let section: DefaultTreeSection;
 
     before(async function () {
         this.timeout(40000);
@@ -42,6 +41,10 @@ describe('Code navigation', function () {
         await waitUntilExtensionIsActivated(driver, `${pjson.displayName}`);
 
         await (await new ActivityBar().getViewControl('Explorer')).openView();
+		await (await new SideBarView().getContent().getSection('resources')).collapse();
+
+		section = await new SideBarView().getContent().getSection('Outline') as DefaultTreeSection;
+        await section.expand();
     });
 
     describe('XML DSL', function () {
@@ -73,7 +76,7 @@ describe('Code navigation', function () {
             });
 
             it('goto symbols', async function () {
-                await gotoSymbolsUsingQuickpickCommand(XML_av_symbols);
+                await gotoSymbolsUsingQuickpickCommand(XML_av_symbols, CODE_NAVIGATION_XML);
             });
         });
 
@@ -89,10 +92,11 @@ describe('Code navigation', function () {
     });
 
     /**
-     * Skipping on Windows. 
+     * Skipping on Windows.
      * https://issues.redhat.com/browse/FUSETOOLS2-2155
      */
-    (os.platform() === 'win32' ? describe.skip : describe)('Java DSL', function () {
+    (process.platform === 'win32' ? describe.skip : describe)('Java DSL', function () {
+
         const JAVA_av_symbols = [
             ['from timer:java', 7],
             ['setBody', 8],
@@ -112,34 +116,36 @@ describe('Code navigation', function () {
         });
 
         describe('Symbols', function () {
+
             it('all symbol proposals are available', async function () {
                 await allSymbolsAreAvailableInQuickpickCommand(JAVA_av_symbols);
             });
 
             it('goto symbols', async function () {
-                await gotoSymbolsUsingQuickpickCommand(JAVA_av_symbols);
+                await gotoSymbolsUsingQuickpickCommand(JAVA_av_symbols, CODE_NAVIGATION_JAVA);
             });
         });
 
         describe('Outline', function () {
+
             it('all symbol proposals are available', async function () {
                 await allSymbolsAreAvailableInOutlineSideBar(JAVA_av_symbols);
             });
 
             it('goto symbols', async function () {
-                await gotoSymbolsUsingQuickpickCommand(JAVA_av_symbols);
+                await gotoSymbolsUsingQuickpickCommand(JAVA_av_symbols, CODE_NAVIGATION_JAVA);
             });
         });
     });
 
     /**
      * Check if all symbols are available in Quick Pick command.
-     * 
+     *
      * @param listOfAvailableSymbols List of expected symbols with line number of occurence.
      */
-    async function allSymbolsAreAvailableInQuickpickCommand(listOfAvailableSymbols: any): Promise<void> {
+    async function allSymbolsAreAvailableInQuickpickCommand(listOfAvailableSymbols: (string | number)[][]): Promise<void> {
         await new Workbench().executeCommand('workbench.action.gotoSymbol');
-        
+
         await driver.wait(async function () {
             input = await InputBox.create();
             return (await input.isDisplayed());
@@ -148,9 +154,8 @@ describe('Code navigation', function () {
         quickpicks = await input.getQuickPicks();
 
         for (const quickpick of quickpicks) {
-            const nameFromField = await listOfAvailableSymbols.at(quickpick.getIndex()).at(0);
-            const quickpickName = (await quickpick.getLabel()).slice(1);
-            assert.equal(quickpickName, nameFromField);
+            const nameFromField = listOfAvailableSymbols.at(quickpick.getIndex()).at(0);
+            assert.equal((await quickpick.getLabel()).slice(1), nameFromField);
         }
 
         await input.cancel();
@@ -158,79 +163,54 @@ describe('Code navigation', function () {
 
     /**
      * Check if all symbols references are working in Quick Pick command.
-     * 
+     *
      * @param listOfAvailableSymbols List of expected symbols with line number of occurence.
      */
-    async function gotoSymbolsUsingQuickpickCommand(listOfAvailableSymbols: any): Promise<void> {
+    async function gotoSymbolsUsingQuickpickCommand(listOfAvailableSymbols: (string | number)[][], title: string): Promise<void> {
         for (const quickpick of quickpicks) {
-            const editor = new TextEditor();
-            
-            await editor.isDisplayed();
-            await selectSymbolFromProposals(await listOfAvailableSymbols.at(quickpick.getIndex()).at(0));
-
-            //await editor.isSelected();
-            //await DefaultWait.sleep(2500);
-            
+            await selectSymbolFromProposals(listOfAvailableSymbols.at(quickpick.getIndex()).at(0) as string);
+            const editor = await activateEditor(driver, title);
             const coords = (await editor.getCoordinates()).at(0); // get active line in editor
-            const coordsExpected = await listOfAvailableSymbols.at(quickpick.getIndex()).at(1);
-            assert.equal(coords, coordsExpected);
+            assert.equal(coords, listOfAvailableSymbols.at(quickpick.getIndex()).at(1));
         }
     }
 
     /**
      * Check if all symbols are available in Outline side bar.
-     * 
+     *
      * @param listOfAvailableSymbols List of expected symbols with line number of occurence.
      */
-    async function allSymbolsAreAvailableInOutlineSideBar(listOfAvailableSymbols: any): Promise<void> {
-        await (await new SideBarView().getContent().getSection('resources')).collapse();
-
-        const section = await new SideBarView().getContent().getSection('Outline') as DefaultTreeSection;
-        await section.expand();
-        await section.isExpanded();
+    async function allSymbolsAreAvailableInOutlineSideBar(listOfAvailableSymbols: (string | number)[][]): Promise<void> {
         const actions = await section.getVisibleItems();
-
         for (let i = 0; i < actions.length; i++) {
             const fromSidebar = await actions.at(i).getLabel();
-            const nameFromField = await listOfAvailableSymbols.at(i).at(0);
+            const nameFromField = listOfAvailableSymbols.at(i).at(0);
             assert.equal(fromSidebar, nameFromField);
         }
     }
 
     /**
      * Check if all symbols references are working in Outline side bar.
-     * 
+     *
      * @param listOfAvailableSymbols List of expected symbols with line number of occurence.
      */
-    async function gotoSymbolsUsingOutlineSideBar(listOfAvailableSymbols: any): Promise<void> {
-        await (await new SideBarView().getContent().getSection('resources')).collapse();
-
-        const section = await new SideBarView().getContent().getSection('Outline') as DefaultTreeSection;
-        await section.expand();
-        await section.isExpanded();
+    async function gotoSymbolsUsingOutlineSideBar(listOfAvailableSymbols: (string | number)[][]): Promise<void> {
         const actions = await section.getVisibleItems();
-
         for (let i = 0; i < actions.length; i++) {
-            const editor = new TextEditor();
-            await editor.isDisplayed();
             await actions.at(i).click();
-            
-            //await editor.isSelected();
-            //await DefaultWait.sleep(2500);
-           
-            const coords = (await editor.getCoordinates()).at(0);
-            const coordsExpected = await listOfAvailableSymbols.at(i).at(1);
-            assert.equal(coords, coordsExpected);
+            const editor = await activateEditor(driver, CODE_NAVIGATION_XML);
+			const coords = (await editor.getCoordinates()).at(0);
+            assert.equal(listOfAvailableSymbols.at(i).at(1), coords);
         }
     }
 
     /**
      * Select specific symbol from proposals in 'Go to Symbol in Editor...' from quickpicks.
-     * 
+     *
      * @param proposal Required symbol for selction.
      */
-    async function selectSymbolFromProposals(proposal): Promise<void> {
-        let input;
+    async function selectSymbolFromProposals(proposal: string): Promise<void> {
+        let input: InputBox;
         await new Workbench().executeCommand('workbench.action.gotoSymbol'); // 'Go to Symbol in Editor...'
         await driver.wait(async function () {
             input = await InputBox.create();
