@@ -148,7 +148,7 @@ describe('Code navigation', function () {
         quickpicks = await input.getQuickPicks();
 
         for (const quickpick of quickpicks) {
-            const nameFromField = listOfAvailableSymbols.at(quickpick.getIndex()).at(0);
+            const nameFromField = await listOfAvailableSymbols.at(quickpick.getIndex()).at(0);
             const quickpickName = (await quickpick.getLabel()).slice(1);
             assert.equal(quickpickName, nameFromField);
         }
@@ -166,13 +166,13 @@ describe('Code navigation', function () {
             const editor = new TextEditor();
             
             await editor.isDisplayed();
-            await selectSymbolFromProposals(listOfAvailableSymbols.at(await quickpick.getIndex()).at(0));
+            await selectSymbolFromProposals(await listOfAvailableSymbols.at(quickpick.getIndex()).at(0));
 
-            await editor.isSelected();
+            //await editor.isSelected();
             //await DefaultWait.sleep(2500);
             
             const coords = (await editor.getCoordinates()).at(0); // get active line in editor
-            const coordsExpected = listOfAvailableSymbols.at(await quickpick.getIndex()).at(1);
+            const coordsExpected = await listOfAvailableSymbols.at(quickpick.getIndex()).at(1);
             assert.equal(coords, coordsExpected);
         }
     }
@@ -192,7 +192,7 @@ describe('Code navigation', function () {
 
         for (let i = 0; i < actions.length; i++) {
             const fromSidebar = await actions.at(i).getLabel();
-            const nameFromField = listOfAvailableSymbols.at(i).at(0);
+            const nameFromField = await listOfAvailableSymbols.at(i).at(0);
             assert.equal(fromSidebar, nameFromField);
         }
     }
@@ -215,11 +215,11 @@ describe('Code navigation', function () {
             await editor.isDisplayed();
             await actions.at(i).click();
             
-            await editor.isSelected();
+            //await editor.isSelected();
             //await DefaultWait.sleep(2500);
            
             const coords = (await editor.getCoordinates()).at(0);
-            const coordsExpected = listOfAvailableSymbols.at(i).at(1);
+            const coordsExpected = await listOfAvailableSymbols.at(i).at(1);
             assert.equal(coords, coordsExpected);
         }
     }
