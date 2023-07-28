@@ -16,7 +16,7 @@
  */
 
 import { assert } from "chai";
-import { ActivityBar, DefaultTreeSection, DefaultWait, InputBox, QuickPickItem, SideBarView, TextEditor, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
+import { ActivityBar, DefaultTreeSection, InputBox, QuickPickItem, SideBarView, TextEditor, VSBrowser, WebDriver, Workbench } from "vscode-uitests-tooling";
 import { CODE_NAVIGATION_XML, CODE_NAVIGATION_JAVA, RESOURCES, closeEditor, waitUntilEditorIsOpened, waitUntilExtensionIsActivated } from "../utils/testUtils";
 import * as pjson from '../../../package.json';
 import * as path from 'path';
