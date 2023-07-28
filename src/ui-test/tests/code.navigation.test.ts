@@ -166,9 +166,10 @@ describe('Code navigation', function () {
             const editor = new TextEditor();
             
             await editor.isDisplayed();
-            //await DefaultWait.sleep(2500);
             await selectSymbolFromProposals(listOfAvailableSymbols.at(await quickpick.getIndex()).at(0));
-            await DefaultWait.sleep(2500);
+
+            await editor.isSelected();
+            //await DefaultWait.sleep(2500);
             
             const coords = (await editor.getCoordinates()).at(0); // get active line in editor
             const coordsExpected = listOfAvailableSymbols.at(await quickpick.getIndex()).at(1);
@@ -212,9 +213,11 @@ describe('Code navigation', function () {
         for (let i = 0; i < actions.length; i++) {
             const editor = new TextEditor();
             await editor.isDisplayed();
-           //await DefaultWait.sleep(2500);
             await actions.at(i).click();
-            await DefaultWait.sleep(2500);
+            
+            await editor.isSelected();
+            //await DefaultWait.sleep(2500);
+           
             const coords = (await editor.getCoordinates()).at(0);
             const coordsExpected = listOfAvailableSymbols.at(i).at(1);
             assert.equal(coords, coordsExpected);
