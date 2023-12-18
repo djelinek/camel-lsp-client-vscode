@@ -183,6 +183,25 @@ export function resetUserSettings(id: string): void {
 }
 
 /**
+ * Read user settings value directly from settings.json
+ *
+ * @param id ID of setting to read.
+ */
+export function readUserSetting(id: string): string | null {
+	const settingsPath = path.resolve(storageFolder, 'settings', 'User', 'settings.json');
+	const settingsContent = fs.readFileSync(settingsPath, 'utf-8');
+
+	const regex = new RegExp(`"${id}":\\s*"(.*?)"`, 'i');
+	const match = settingsContent.match(regex);
+
+	if (match == null) {
+		return null;
+	} else {
+		return match[1];
+	}
+}
+
+/**
  * Delete file from folder.
  *
  * @param filename Name of file.
