@@ -1,13 +1,21 @@
 {
 	"compilerOptions": {
-		"target": "es6",
+		"target": "es2022",
 		"lib": [
-            "es6"
-        ],
+			"es2022"
+		],
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"rootDir": "src",
 		"outDir": "out",
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": false, // true causes like milion errors here
+		"noUnusedLocals": true,
+		//"noUnusedParameters": true, // few errors
+		"sourceMap": true,
+		
+		"skipLibCheck": true
 	},
 	"include": [
 		"src"

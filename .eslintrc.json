@@ -1,43 +1,62 @@
 {
-	"env": {
+    "env": {
 		"browser": true,
-		"es2020": true,
+		"es2022": true,
+		"node": true,
 		"mocha": true
 	},
-	"extends": [
+    "extends": [
 		"eslint:recommended",
 		"plugin:@typescript-eslint/recommended",
+		"plugin:@typescript-eslint/recommended-requiring-type-checking",
 		"plugin:import/typescript"
 	],
-	"parser": "@typescript-eslint/parser",
-	"parserOptions": {
-		"ecmaVersion": 2020,
-		"sourceType": "script",
-		"ecmaFeatures": {
-			"impliedStrict": true
-		},
-		"project": "./tsconfig.json"
-	},
-	"plugins": [
-		"@typescript-eslint",
-		"eslint-plugin-import"
-	],
-	"rules": {
-		"@typescript-eslint/no-var-requires": "off", /** allows require statements outside of imports **/
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module",
+        "project": "./tsconfig.json"
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "rules": {
+        // eslint: recommended - disable core rules -> they're overriden by TS-eslint
+        "no-unused-vars": "off", // remove when fixed -> caused by eslint:recommended
+        "no-extra-semi": "off", // remove when fixed -> caused by eslint:recommended
+        "prefer-const": "warn", 
+        "curly": "warn",
+        "eqeqeq": "warn",
+        "no-throw-literal": "warn",
 		"no-async-promise-executor": "off", /* Deactivated for now as i do not know how to fix it safely*/
-		"@typescript-eslint/no-namespace": "off",
-		"@typescript-eslint/no-explicit-any": "off",
-		"@typescript-eslint/no-floating-promises": "warn",
-		"import/no-extraneous-dependencies": [
-			"error",
-			{
-				"devDependencies": [
-					"**/test/**",
-					"**/ui-test/**"
-				],
-				"optionalDependencies": false,
-				"peerDependencies": false
-			}
-		]
-	}
+
+        // typescript-eslint/recommended
+        "@typescript-eslint/no-unused-vars": "warn",
+        "@typescript-eslint/no-var-requires": "off", /** allows require statements outside of imports **/
+        "@typescript-eslint/no-explicit-any": "off", // off by original
+        "@typescript-eslint/no-extra-semi": "warn",
+        "@typescript-eslint/naming-convention": "warn",
+        "@typescript-eslint/semi": "warn",
+		"@typescript-eslint/no-namespace": "off", // off by original
+
+        // typescript-eslint/recommended-requiring-type-checking
+        "@typescript-eslint/require-await": "warn",
+        "@typescript-eslint/no-misused-promises": "warn",
+        "@typescript-eslint/no-unsafe-argument": "warn",
+        "@typescript-eslint/no-unsafe-assignment": "warn",
+        "@typescript-eslint/no-unsafe-member-access": "warn",
+		"@typescript-eslint/no-unsafe-return": "warn",
+        "@typescript-eslint/no-base-to-string": "warn",
+        "@typescript-eslint/no-unsafe-call": "warn",
+        "@typescript-eslint/restrict-plus-operands": "warn",
+        "@typescript-eslint/no-unnecessary-type-assertion": "warn",
+        "@typescript-eslint/restrict-template-expressions": "warn",
+		"@typescript-eslint/no-floating-promises": "warn"
+    },
+    "ignorePatterns": [
+        "out",
+        "dist",
+        "**/*.d.ts"
+    ]
 }
