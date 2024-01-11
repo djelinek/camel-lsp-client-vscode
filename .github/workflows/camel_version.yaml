@@ -113,3 +113,23 @@ jobs:
         with:
           name: ${{ matrix.os }}-${{ matrix.camel-version }}-ui-test-screenshots
           path: test-resources/screenshots/*.png
+
+  check:
+    if: always()
+    runs-on: ubuntu-latest
+    name: Status Check
+    needs: [ camel ]
+    steps:
+      - name: Test Matrix Result
+        run: |
+          echo result = ${{ needs.camel.result }}
+      - name: Status Check - success
+        if: ${{ needs.camel.result == 'success' }}
+        run: |
+          echo "All tests successfully completed!"
+          exit 0
+      - name: Status Check - failure
+        if: ${{ needs.camel.result != 'success' }}
+        run: |
+          echo "Status Check failed!"
+          exit 1
