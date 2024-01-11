@@ -15,17 +15,17 @@
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 2022,
-        "sourceType": "module",
+        "sourceType": "commonjs",
         "project": "./tsconfig.json"
     },
     "plugins": [
         "@typescript-eslint"
     ],
     "rules": {
-        // eslint: recommended - disable core rules -> they're overriden by TS-eslint
+        // eslint: recommended - disable core rules -> they're overridden by TS-eslint
         "no-unused-vars": "off", // remove when fixed -> caused by eslint:recommended
         "no-extra-semi": "off", // remove when fixed -> caused by eslint:recommended
-        "prefer-const": "warn", 
+        "prefer-const": "warn",
         "curly": "warn",
         "eqeqeq": "warn",
         "no-throw-literal": "warn",
@@ -56,7 +56,12 @@
     },
     "ignorePatterns": [
         "out",
-        "dist",
-        "**/*.d.ts"
+        "**/*.d.ts",
+		"test Fixture with speci@l chars",
+		"src/ui-test/resources",
+		"node_modules",
+		".vscode-test",
+		"test-resources",
+		".test-extensions"
     ]
 }

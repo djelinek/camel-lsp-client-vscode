@@ -1,26 +1,26 @@
 {
 	"compilerOptions": {
-		"target": "es2022",
-		"lib": [
-			"es2022"
-		],
 		"module": "commonjs",
-		"moduleResolution": "node",
-		"rootDir": "src",
+		"target": "ES2022",
 		"outDir": "out",
-		"resolveJsonModule": true,
-		"forceConsistentCasingInFileNames": true,
-		"strict": false, // true causes like milion errors here
-		"noUnusedLocals": true,
-		//"noUnusedParameters": true, // few errors
+		"lib": [
+			"ES2022"
+		],
 		"sourceMap": true,
-		
-		"skipLibCheck": true
+		"rootDir": "src",
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"strict": true, // true causes like million errors here
+		"forceConsistentCasingInFileNames": true
 	},
 	"include": [
 		"src"
 	],
 	"exclude": [
+		"out",
+        "**/*.d.ts",
+		"test Fixture with speci@l chars",
+		"src/ui-test/resources",
 		"node_modules",
 		".vscode-test",
 		"test-resources",
