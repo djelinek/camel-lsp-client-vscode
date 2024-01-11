@@ -28,6 +28,6 @@ describe('Camel version', function () {
 			this.skip();
 		}
 
-		assert.equal(readUserSetting(CATALOG_VERSION_ID), process.env.CAMEL_VERSION)
+		assert.equal(readUserSetting(CATALOG_VERSION_ID), process.env.CAMEL_VERSION);
 	});
 });
