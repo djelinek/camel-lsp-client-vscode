@@ -15,17 +15,19 @@
  * limitations under the License.
  */
 import { assert } from "chai";
-import { CATALOG_VERSION_ID, readUserSetting } from "../utils/testUtils";
+import { CATALOG_VERSION_ID, readUserSetting } from "../../utils/testUtils";
 
-describe('check camel version at end', function () {
+describe('Camel version', function () {
 	this.timeout(15000);
 
-	it('actual version at end ', async function () {
+	const testDescription = process.env.CAMEL_VERSION ? `Check actual version is ${process.env.CAMEL_VERSION}` : 'Nothing to check';
 
-        if(process.env.CAMEL_VERSION == null || process.env.CAMEL_VERSION.length == 0){
+	it(testDescription, async function () {
+
+		if (process.env.CAMEL_VERSION == null || process.env.CAMEL_VERSION.length == 0) {
 			this.skip();
-		} 
+		}
 
-        assert.equal(readUserSetting(CATALOG_VERSION_ID), process.env.CAMEL_VERSION)
-    });
+		assert.equal(readUserSetting(CATALOG_VERSION_ID), process.env.CAMEL_VERSION)
+	});
 });
