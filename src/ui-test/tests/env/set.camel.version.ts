@@ -21,24 +21,25 @@ import {
 	closeEditor,
 	readUserSetting,
 	waitUntilExtensionIsActivated
-} from '../utils/testUtils';
+} from '../../utils/testUtils';
 import {
 	ActivityBar,
 	before,
 	VSBrowser,
 	WebDriver,
-    TextSetting,
-    Workbench
+	TextSetting,
+	Workbench
 } from 'vscode-uitests-tooling';
-import * as pjson from '../../../package.json';
-import { assert } from 'chai';
+import * as pjson from '../../../../package.json';
 
-describe('set camel version', function () {
+describe('Camel version', function () {
 	this.timeout(150000);
 
-    let driver: WebDriver;
+	const testDescription = process.env.CAMEL_VERSION ? `Set ${process.env.CAMEL_VERSION}` : 'Use default';
 
-    before(async function () {
+	let driver: WebDriver;
+
+	before(async function () {
 		this.timeout(40000);
 		driver = VSBrowser.instance.driver;
 		await VSBrowser.instance.openResources(RESOURCES);
@@ -48,15 +49,11 @@ describe('set camel version', function () {
 		await (await new ActivityBar().getViewControl('Explorer')).openView();
 	});
 
-	const testDescription = process.env.CAMEL_VERSION 
-    ? `set camel version ${process.env.CAMEL_VERSION} and check` 
-    : 'use default version';
-
 	it(testDescription, async function () {
-
-		if(process.env.CAMEL_VERSION == null || process.env.CAMEL_VERSION.length == 0){ // no env variable set or is empty
+		// no env variable set or is empty
+		if (process.env.CAMEL_VERSION == null || process.env.CAMEL_VERSION.length == 0) {
 			this.skip();
-		} 
+		}
 
 		// set version in ui
 		const settings = await new Workbench().openSettings();
@@ -65,10 +62,8 @@ describe('set camel version', function () {
 		await closeEditor('Settings', true);
 
 		// wait until change is available in settings file
-		await driver.wait(async function () { 
-			return readUserSetting(CATALOG_VERSION_ID) === (process.env.CAMEL_VERSION);
-		}, 15000, `Camel Version not set in time limit.`, 1500);
-
-		assert.equal(readUserSetting(CATALOG_VERSION_ID), process.env.CAMEL_VERSION)
-    });
+		await driver.wait(async function () {
+			return readUserSetting(CATALOG_VERSION_ID) === process.env.CAMEL_VERSION;
+		}, 15000, `Camel Version - '${process.env.CAMEL_VERSION}' not set in time limit.`, 1500);
+	});
 });

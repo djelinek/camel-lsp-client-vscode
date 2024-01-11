@@ -124,10 +124,10 @@ describe('User preferences', function () {
 			await new EditorView().closeAllEditors();
 			if(process.env.CAMEL_VERSION != null){
 				await setCamelCatalogVersion(process.env.CAMEL_VERSION);
-				await driver.wait(async function () { 
-					return readUserSetting(CATALOG_VERSION_ID) === (process.env.CAMEL_VERSION);
-				}, 15000, `Camel Version not set in time limit.`, 1500);
-				
+				await driver.wait(async function () {
+					return readUserSetting(CATALOG_VERSION_ID) === process.env.CAMEL_VERSION;
+				}, 15000, `Camel Version - '${process.env.CAMEL_VERSION}' not set in time limit.`, 1500);
+
 			} else {
 				resetUserSettings(CATALOG_VERSION_ID);
 			}

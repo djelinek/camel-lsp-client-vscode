@@ -1,4 +1,4 @@
-name: Productized CI
+name: Camel Version CI
 
 on:
   pull_request:
@@ -10,22 +10,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  main:
+  camel:
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-13, windows-latest ]
-        version: [ max ] # [ "x.x.x" | latest | max ]
-        type: [ stable ] # [ stable | insider ]
-        camelversion: [ "4.0.0",  "4.0.0.redhat-00031"]
+        camel-version: [ "4.0.0",  "4.0.0.redhat-00031" ]
 
     env:
-      CODE_VERSION: ${{ matrix.version }}
-      CODE_TYPE: ${{ matrix.type }}
+      CODE_VERSION: max
+      CODE_TYPE: stable
       TEST_RESOURCES: test-resources
-      CAMEL_VERSION: ${{ matrix.camelversion }}
+      CAMEL_VERSION: ${{ matrix.camel-version }}
 
     runs-on: ${{ matrix.os }}
+    name: ${{ matrix.camel-version }} / ${{ matrix.os }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -68,9 +68,6 @@ jobs:
       - name: npm-ci
         run: npm ci
 
-      - name: npm-vscode:prepublish
-        run: npm run vscode:prepublish
-
       - name: ui test (ubuntu)
         id: uiTest_Ubuntu
         if: matrix.os == 'ubuntu-latest'
@@ -88,18 +85,12 @@ jobs:
         uses: actions/upload-artifact@v3
         if: failure() && matrix.os != 'windows-latest'
         with:
-          name: ${{ matrix.os }}-${{ matrix.version }}-camel-lsp-log
+          name: ${{ matrix.os }}-${{ matrix.camel-version }}-camel-lsp-log
           path: |
             /tmp/log-camel-lsp.log
             /tmp/log-camel*.log.gz
-      - name: Store VS Code Logs
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: ${{ matrix.os }}-${{ matrix.version }}-test-logs
-          path: .vscode-test/logs/*
 
-      - name: Store UI test log
+      - name: Store UI test logs
         uses: actions/upload-artifact@v3
         if: |
           (failure() || cancelled()) &&
@@ -108,7 +99,7 @@ jobs:
           steps.uiTest_Ubuntu.outcome == 'cancelled' ||
           steps.uiTest_MacOS_Windows.outcome == 'cancelled')
         with:
-          name: ${{ matrix.os }}-${{ matrix.version }}-ui-test-logs
+          name: ${{ matrix.os }}-${{ matrix.camel-version }}-ui-test-logs
           path: test-resources/settings/logs/*
 
       - name: Store UI Test Screenshots
@@ -120,25 +111,5 @@ jobs:
           steps.uiTest_Ubuntu.outcome == 'cancelled' ||
           steps.uiTest_MacOS_Windows.outcome == 'cancelled')
         with:
-          name: ${{ matrix.os }}-${{ matrix.version }}-ui-test-screenshots
+          name: ${{ matrix.os }}-${{ matrix.camel-version }}-ui-test-screenshots
           path: test-resources/screenshots/*.png
-
-  check:
-    if: always()
-    runs-on: ubuntu-latest
-    name: Status Check
-    needs: [ main ]
-    steps:
-      - name: Test Matrix Result
-        run: |
-          echo result = ${{ needs.main.result }}
-      - name: Status Check - success
-        if: ${{ needs.main.result == 'success' }}
-        run: |
-          echo "All tests successfully completed!"
-          exit 0
-      - name: Status Check - failure
-        if: ${{ needs.main.result != 'success' }}
-        run: |
-          echo "Status Check failed!"
-          exit 1
